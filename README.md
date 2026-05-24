@@ -22,48 +22,43 @@ A **Flutter 3.44+**–compatible fork of [prefer_shorthands](https://pub.dev/pac
 
 ---
 
-## Can I add it with only a GitHub URL?
+## Setup
 
-**Short answer for Flutter 3.44 users: no — not yet.**
+### Best practice (use this today)
 
-Analyzer plugins are enabled in **`analysis_options.yaml`**, not in `pubspec.yaml`. The analysis server supports:
+On **Flutter 3.44** (and until your SDK supports `git:` in `plugins:` — see below), the reliable approach is:
 
-| How you point to the plugin | Flutter 3.44 (Dart 3.12) | Dart 3.13+ |
-|-----------------------------|--------------------------|------------|
-| `git:` + GitHub URL in `analysis_options.yaml` | **Not supported** | **Supported** |
-| `path:` to a folder on your machine | **Supported** (use this) | Supported |
+1. **Clone** this repo into your app under `packages/prefer_shorthands`
+2. Point the plugin with **`path:`** in root **`analysis_options.yaml`**
+3. **Restart** the Dart Analysis Server
 
-So on **Flutter 3.44** you clone this repo **once** into your project (see below), then reference that folder with `path:`. You cannot paste a GitHub URL as `path:` — `path` must be a real directory on disk.
+Do **not** rely on a GitHub URL inside `analysis_options.yaml` on Flutter 3.44 — the Dart SDK does not load plugins that way yet.
 
-You also **must not** add this package under `pubspec.yaml` → `dependencies` / `dev_dependencies`; that does not load analyzer plugins and can break other tools.
+Do **not** add this repo under `pubspec.yaml` → `dependencies` / `dev_dependencies`; that does not enable analyzer plugins.
 
 ---
 
-## Add to your project (Flutter 3.44 — recommended)
+### Step 1 — Clone into `packages/`
 
-Do this at the **root** of your Flutter app (where `pubspec.yaml` lives).
-
-### 1. Clone into `packages/`
+From your **Flutter app root** (same folder as `pubspec.yaml`):
 
 ```bash
 git clone https://github.com/NurmuhammadMahmudov/ndev_prefer_shorthands.git packages/prefer_shorthands
 cd packages/prefer_shorthands && git checkout v0.4.8 && cd ../..
 ```
 
-Your tree:
-
 ```text
 my_app/
 ├── lib/
 ├── pubspec.yaml
-├── analysis_options.yaml          ← edit this
+├── analysis_options.yaml          ← edit in step 2
 └── packages/
-    └── prefer_shorthands/         ← this repo (must contain pubspec.yaml)
+    └── prefer_shorthands/         ← this repo
 ```
 
-Commit `packages/prefer_shorthands` (or use a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) at the same path if your team prefers).
+Commit that folder (or use a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) at the same path for teams).
 
-### 2. Enable in root `analysis_options.yaml`
+### Step 2 — Root `analysis_options.yaml`
 
 ```yaml
 plugins:
@@ -76,22 +71,22 @@ prefer_shorthands:
   convert_implicit_declaration: false   # optional
 ```
 
-- `diagnostics.prefer_shorthands: true` — required; plugin lints are off by default.
-- Keep any existing `include:` / `linter:` blocks; only add the sections above.
+- Plugin config lives only in the **project/workspace root** `analysis_options.yaml`, not in nested package files.
+- `diagnostics.prefer_shorthands: true` is required (plugin lints are off by default).
 
-### 3. Restart analysis
+### Step 3 — Restart analysis
 
 Command Palette → **Dart: Restart Analysis Server** (or restart the IDE).
 
-### 4. Check it works
+### Step 4 — Verify
 
 ```dart
 import 'package:flutter/material.dart';
 
 Widget example() {
   return Row(
-  // Before: mainAxisSize: MainAxisSize.min
-  // Suggested: mainAxisSize: .min
+    // Before: mainAxisSize: MainAxisSize.min
+    // Suggested: mainAxisSize: .min
     mainAxisSize: MainAxisSize.min,
     children: const [Text('Hello')],
   );
@@ -104,9 +99,22 @@ flutter analyze
 
 ---
 
-## GitHub URL only (Dart 3.13+ / future Flutter)
+## When will `git:` in `analysis_options.yaml` work?
 
-If your SDK supports `git:` for analyzer plugins ([dart-lang/sdk#61794](https://github.com/dart-lang/sdk/issues/61794) — fixed in Dart 3.13 Beta 1+), you can skip cloning and use:
+The Dart team added support for **`git:` dependencies under `plugins:`** in the **Dart SDK** (not in this package). It lands with **Dart 3.13 Beta 1 and later** — see [dart-lang/sdk#61794](https://github.com/dart-lang/sdk/issues/61794).
+
+| Your toolchain | `plugins:` + `git:` URL | `plugins:` + `path:` (clone) |
+|----------------|-------------------------|----------------------------|
+| Flutter 3.44 (Dart 3.12) | **Does not work** | **Works — use this** |
+| Dart 3.13+ (future Flutter that bundles it) | **Should work** | Still works |
+
+**How to know when you can switch to a URL:** run `dart --version`. If it is **3.13.0** or higher *and* your IDE/analysis server uses that SDK, you can try the `git:` block below instead of maintaining a local clone. Until then, keep **clone + `path:`**.
+
+**Why `git:` fails on Flutter 3.44:** the analysis server reads `plugins:` and only implements certain sources on Dart 3.12. A `git:` entry is ignored or never resolved, so you see no diagnostics. Cloning gives the server a real folder — same repo, supported via `path:`.
+
+### Future setup — GitHub URL in `analysis_options.yaml` (Dart 3.13+ only)
+
+When your SDK supports it, you can replace the clone step with:
 
 ```yaml
 plugins:
@@ -118,7 +126,9 @@ plugins:
       prefer_shorthands: true
 ```
 
-Then restart the analysis server. **On Flutter 3.44 this often does nothing** — use the `packages/` + `path:` steps above instead.
+Restart the analysis server after changing `plugins:`.
+
+Until you have confirmed Dart 3.13+ in your environment, stay on **best practice: clone → `packages/prefer_shorthands` → `path:`**.
 
 ---
 
@@ -129,7 +139,7 @@ Use the original from pub.dev in root `analysis_options.yaml`:
 ```yaml
 plugins:
   prefer_shorthands: ^0.4.7
-  # plus diagnostics: prefer_shorthands: true under the plugin key if needed
+  # enable diagnostics.prefer_shorthands: true under the plugin entry if needed
 ```
 
 ---
